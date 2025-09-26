@@ -1,41 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.26;
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
-interface ICampaignManager {
-    function createCampaign(
-        string memory requirements,
-        uint256 paymentPerPost,
-        uint256 maxPosts,
-        uint256 deadline,
-        string[] memory requiredHashtags,
-        uint256 minFollowers
-    ) external returns (uint256);
-    
-    function submitPost(uint256 campaignId, string memory postUrl) external returns (uint256);
-}
-
-interface IPaymentEscrow {
-    function depositCampaignBudget(uint256 campaignId, uint256 amount) external;
-    function executePayment(address creator, uint256 amount, uint256 campaignId) external;
-}
-
-interface IUserRegistry {
-    function isRegisteredBrand(address user) external view returns (bool);
-    function isRegisteredCreator(address user) external view returns (bool);
-    function getUserReputation(address user) external view returns (uint256);
-}
-
-interface IAIVerification {
-    function requestVerification(
-        uint256 campaignId,
-        address creator,
-        string memory postUrl,
-        string[] memory requirements
-    ) external returns (uint256);
-}
+import {CampaignManager} from "./CampaignManager.sol";
+import {PaymentEscrow} from "./PaymentEscrow.sol";
+import {UserRegistry} from "./UserRegistry.sol";
+import {AIVerification} from "./AIVerification.sol";
 
 
 contract PlatformCore is 
@@ -53,8 +25,6 @@ contract PlatformCore is
     address public paymentEscrow;
     address public userRegistry;
     address public aiVerification;
-    address public reputationSystem;
-    address public disputeResolution;
 
     // Platform configuration
     uint256 public platformFeeRate; 
@@ -81,28 +51,18 @@ contract PlatformCore is
         maxCampaignDuration = 365 days;
     }
 
-    /**
-     * Set contract addresses after deployment
-     */
     function setContractAddresses(
         address _campaignManager,
         address _paymentEscrow,
         address _userRegistry,
-        address _aiVerification,
-        address _reputationSystem,
-        address _disputeResolution
+        address _aiVerification
     ) external onlyRole(ADMIN_ROLE) {
         campaignManager = _campaignManager;
         paymentEscrow = _paymentEscrow;
         userRegistry = _userRegistry;
         aiVerification = _aiVerification;
-        reputationSystem = _reputationSystem;
-        disputeResolution = _disputeResolution;
     }
 
-    /**
-     * Create a new campaign (Brand flow)
-     */
     function createCampaign(
         string memory requirements,
         uint256 paymentPerPost,
@@ -112,7 +72,7 @@ contract PlatformCore is
         uint256 minFollowers,
         uint256 budgetAmount
     ) external whenNotPaused nonReentrant returns (uint256) {
-        require(IUserRegistry(userRegistry).isRegisteredBrand(msg.sender), "Not registered brand");
+        require(UserRegistry(userRegistry).isRegisteredBrand(msg.sender), "Not registered brand");
         require(deadline > block.timestamp + minCampaignDuration, "Invalid deadline");
         require(deadline < block.timestamp + maxCampaignDuration, "Deadline too far");
         require(paymentPerPost > 0, "Payment must be positive");
@@ -120,17 +80,19 @@ contract PlatformCore is
         require(budgetAmount >= paymentPerPost * maxPosts, "Insufficient budget");
 
         // Create campaign
-        uint256 campaignId = ICampaignManager(campaignManager).createCampaign(
+        uint256 campaignId = CampaignManager(campaignManager).createCampaign(
+            msg.sender,
             requirements,
             paymentPerPost,
             maxPosts,
             deadline,
             requiredHashtags,
-            minFollowers
+            minFollowers,
+            budgetAmount
         );
 
         // Lock payment in escrow
-        IPaymentEscrow(paymentEscrow).depositCampaignBudget(campaignId, budgetAmount);
+        PaymentEscrow(paymentEscrow).depositCampaignBudget(campaignId, budgetAmount, msg.sender);
 
         return campaignId;
     }
@@ -141,21 +103,30 @@ contract PlatformCore is
         string memory postUrl,
         string[] memory requirements
     ) external whenNotPaused nonReentrant returns (uint256) {
-        require(IUserRegistry(userRegistry).isRegisteredCreator(msg.sender), "Not registered creator");
+        require(UserRegistry(userRegistry).isRegisteredCreator(msg.sender), "Not registered creator");
         require(bytes(postUrl).length > 0, "Post URL required");
 
         // Submit post
-        uint256 submissionId = ICampaignManager(campaignManager).submitPost(campaignId, postUrl);
+        uint256 submissionId = CampaignManager(campaignManager).submitPost(campaignId, postUrl, msg.sender);
 
-        // Request AI verification
-        uint256 verificationId = IAIVerification(aiVerification).requestVerification(
+        // Request AI verification with payment details
+        uint256 verificationId = AIVerification(aiVerification).requestVerification(
             campaignId,
             msg.sender,
             postUrl,
             requirements
         );
 
+    
+        AIVerification(aiVerification).setPaymentAmount(verificationId, _getCampaignPaymentPerPost(campaignId), submissionId);
+
         return verificationId;
+    }
+
+   
+    function _getCampaignPaymentPerPost(uint256 campaignId) internal view returns (uint256) {
+        CampaignManager.Campaign memory campaign = CampaignManager(campaignManager).getCampaign(campaignId);
+        return campaign.paymentPerPost;
     }
 
   
@@ -186,11 +157,9 @@ contract PlatformCore is
         address _campaignManager,
         address _paymentEscrow,
         address _userRegistry,
-        address _aiVerification,
-        address _reputationSystem,
-        address _disputeResolution
+        address _aiVerification
     ) {
-        return (campaignManager, paymentEscrow, userRegistry, aiVerification, reputationSystem, disputeResolution);
+        return (campaignManager, paymentEscrow, userRegistry, aiVerification);
     }
 
 }

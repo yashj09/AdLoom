@@ -103,20 +103,23 @@ contract CampaignManager is
     }
 
     function createCampaign(
+        address brand,
         string memory requirements,
         uint256 paymentPerPost,
         uint256 maxPosts,
         uint256 deadline,
         string[] memory requiredHashtags,
-        uint256 minFollowers
+        uint256 minFollowers,
+        uint256 totalBudget
     ) external onlyRole(PLATFORM_ROLE) returns (uint256) {
         campaignCounter++;
         uint256 campaignId = campaignCounter;
 
         Campaign storage campaign = campaigns[campaignId];
         campaign.campaignId = campaignId;
-        campaign.brand = tx.origin; 
+        campaign.brand = brand; 
         campaign.requirements = requirements;
+        campaign.totalBudget = totalBudget;
         campaign.paymentPerPost = paymentPerPost;
         campaign.maxPosts = maxPosts;
         campaign.currentPosts = 0;
@@ -155,10 +158,10 @@ contract CampaignManager is
   
     function submitPost(
         uint256 campaignId,
-        string memory postUrl
+        string memory postUrl,
+        address creator
     ) external onlyRole(PLATFORM_ROLE) returns (uint256) {
-        Campaign storage campaign = campaigns[campaignId];
-        address creator = tx.origin; 
+        Campaign storage campaign = campaigns[campaignId]; 
 
         require(campaign.campaignId != 0, "Campaign does not exist");
         require(campaign.status == CampaignStatus.Active, "Campaign not active");
@@ -190,7 +193,7 @@ contract CampaignManager is
    
     function updatePostVerification(
         uint256 submissionId,
-        VerificationStatus newStatus,
+        uint8 newStatus,
         uint256 verificationId,
         string memory rejectionReason
     ) external onlyRole(PLATFORM_ROLE) {
@@ -198,14 +201,14 @@ contract CampaignManager is
         require(submission.submissionId != 0, "Submission does not exist");
 
         VerificationStatus oldStatus = submission.status;
-        submission.status = newStatus;
+        submission.status = VerificationStatus(newStatus);
         submission.verificationId = verificationId;
         
-        if (newStatus == VerificationStatus.Rejected) {
+        if (VerificationStatus(newStatus) == VerificationStatus.Rejected) {
             submission.rejectionReason = rejectionReason;
         }
 
-        emit PostVerificationUpdated(submissionId, oldStatus, newStatus);
+        emit PostVerificationUpdated(submissionId, oldStatus, VerificationStatus(newStatus));
     }
 
    

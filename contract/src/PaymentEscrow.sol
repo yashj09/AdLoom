@@ -116,12 +116,11 @@ contract PaymentEscrow is
   
     function depositCampaignBudget(
         uint256 campaignId,
-        uint256 amount
+        uint256 amount,
+        address brand
     ) external onlyRole(PLATFORM_ROLE) nonReentrant {
         require(amount > 0, "Amount must be positive");
         require(escrowDeposits[campaignId].campaignId == 0, "Campaign already has deposit");
-
-        address brand = tx.origin; // Original caller from PlatformCore
 
         // Transfer PYUSD from brand to escrow
         pyusdToken.safeTransferFrom(brand, address(this), amount);
@@ -310,6 +309,8 @@ contract PaymentEscrow is
         uint256 activeCampaignCount
     ) {
         totalSpending = brandSpending[brand];
+        activeCampaignCount = 0;
+        
     }
 
     function getPlatformStats() external view returns (PlatformStats memory) {
