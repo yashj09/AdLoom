@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
-
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 interface ICampaignManager {
     function createCampaign(
@@ -42,11 +39,9 @@ interface IAIVerification {
 
 
 contract PlatformCore is 
-    Initializable,
-    AccessControlUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable
+    AccessControl,
+    Pausable,
+    ReentrancyGuard
 {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant BRAND_ROLE = keccak256("BRAND_ROLE");
@@ -72,20 +67,11 @@ contract PlatformCore is
     event ContractAddressUpdated(string contractName, address oldAddress, address newAddress);
     event EmergencyAction(string action, address executor, uint256 timestamp);
 
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(
+    constructor(
         address _admin,
         uint256 _platformFeeRate,
         address _feeReceiver
-    ) public initializer {
-        __AccessControl_init();
-        __Pausable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
-
+    ) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
 
@@ -207,10 +193,4 @@ contract PlatformCore is
         return (campaignManager, paymentEscrow, userRegistry, aiVerification, reputationSystem, disputeResolution);
     }
 
-   
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyRole(ADMIN_ROLE)
-    {}
 }
