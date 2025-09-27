@@ -32,15 +32,24 @@ export function useUserRegistry() {
 
   const registerBrand = async (
     companyName: string,
-    website: string,
-    industry: string,
+    description: string,
+    websiteUrl: string,
+    logoUrl: string,
+    industries: string[],
     contactEmail: string
   ) => {
     return writeContract({
       address: CONTRACT_ADDRESSES.USER_REGISTRY,
       abi: UserRegistryABI,
       functionName: "registerBrand",
-      args: [companyName, website, industry, contactEmail],
+      args: [
+        companyName,
+        description,
+        websiteUrl,
+        logoUrl,
+        industries,
+        contactEmail,
+      ],
     });
   };
 
@@ -49,13 +58,32 @@ export function useUserRegistry() {
     displayName: string,
     bio: string,
     profileImageUrl: string,
-    socialLinks: string[]
+    socialMedia: {
+      twitter: string;
+      instagram: string;
+      tiktok: string;
+      youtube: string;
+      linkedin: string;
+      website: string;
+    },
+    totalFollowers: number,
+    categories: string[],
+    languages: string[]
   ) => {
     return writeContract({
       address: CONTRACT_ADDRESSES.USER_REGISTRY,
       abi: UserRegistryABI,
       functionName: "registerCreator",
-      args: [username, displayName, bio, profileImageUrl, socialLinks],
+      args: [
+        username,
+        displayName,
+        bio,
+        profileImageUrl,
+        socialMedia,
+        BigInt(totalFollowers),
+        categories,
+        languages,
+      ],
     });
   };
 
@@ -107,6 +135,16 @@ export function useUserProfile(address?: `0x${string}`) {
     functionName: "isRegisteredCreator",
     args: address ? [address] : undefined,
     query: { enabled: !!address },
+  });
+
+  // Debug logging
+  console.log("Debug useUserProfile:", {
+    address,
+    userType,
+    isRegisteredBrand,
+    isRegisteredCreator,
+    brandData,
+    creatorData,
   });
 
   return {

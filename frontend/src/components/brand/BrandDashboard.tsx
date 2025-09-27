@@ -1,6 +1,6 @@
 // frontend/src/components/brand/BrandDashboard.tsx
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import {
@@ -45,22 +45,34 @@ export const BrandDashboard = () => {
   // Get user profile data
   const { brandData, isRegisteredBrand, userType } = useUserProfile(address);
 
+  // Debug logging
+  console.log("Debug BrandDashboard:", {
+    address,
+    userType,
+    isRegisteredBrand,
+    brandData,
+  });
+
   // Get brand's campaigns
   const { brandCampaigns } = useUserCampaigns(address);
 
   // Redirect if not connected or not a brand
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isConnected) {
       router.push("/register");
       return;
     }
 
-    if (isConnected && userType !== undefined && userType !== 1) {
+    // Only redirect if we have loaded the userType (not undefined)
+    if (isConnected && userType !== undefined) {
       if (userType === 2) {
+        // User is a creator, redirect to creator dashboard
         router.push("/creator/dashboard");
-      } else {
+      } else if (userType === 0) {
+        // User is not registered, redirect to register
         router.push("/register");
       }
+      // If userType === 1 (Brand), stay on this page
     }
   }, [isConnected, userType, router]);
 
@@ -136,8 +148,8 @@ export const BrandDashboard = () => {
     );
   }
 
-  // Not registered state
-  if (!isRegisteredBrand) {
+  // Not registered state - but only show after we have data
+  if (userType !== undefined && userType === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">

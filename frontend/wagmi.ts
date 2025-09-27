@@ -2,8 +2,8 @@ import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { sepolia } from "wagmi/chains";
 
 export const config = getDefaultConfig({
-  appName: "fundme",
-  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string,
+  appName: "OnChain Marketing Platform",
+  projectId: "f2852f28d4889451cbf6ef6a35a2206c", // Fallback for development
   chains: [sepolia],
   ssr: true,
 });
