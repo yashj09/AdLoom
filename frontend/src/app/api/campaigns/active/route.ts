@@ -7,7 +7,7 @@ import { formatUnits } from "viem";
 
 const client = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.sepolia.dev"),
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL || "https://1rpc.io/sepolia"),
 });
 
 // Transform contract data to UI-friendly format

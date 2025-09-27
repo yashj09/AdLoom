@@ -7,7 +7,7 @@ import CampaignManagerABI from "@/abis/CampaignManager.json";
 
 const client = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.sepolia.dev"),
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL || "https://1rpc.io/sepolia"),
 });
 
 export async function GET(

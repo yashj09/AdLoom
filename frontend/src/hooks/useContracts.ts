@@ -137,15 +137,7 @@ export function useUserProfile(address?: `0x${string}`) {
     query: { enabled: !!address },
   });
 
-  // Debug logging
-  console.log("Debug useUserProfile:", {
-    address,
-    userType,
-    isRegisteredBrand,
-    isRegisteredCreator,
-    brandData,
-    creatorData,
-  });
+  // Removed debug logging
 
   return {
     userType,
@@ -166,6 +158,9 @@ export function usePlatformCore() {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
+
+  // PYUSD token address on Sepolia
+  const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9";
 
   const createCampaign = async (
     requirements: string,
@@ -195,6 +190,28 @@ export function usePlatformCore() {
     });
   };
 
+  const approvePYUSD = async (amount: string) => {
+    const amountWei = parseUnits(amount, 6);
+
+    return writeContract({
+      address: PYUSD_ADDRESS,
+      abi: [
+        {
+          inputs: [
+            { name: "spender", type: "address" },
+            { name: "amount", type: "uint256" },
+          ],
+          name: "approve",
+          outputs: [{ name: "", type: "bool" }],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+      ],
+      functionName: "approve",
+      args: [CONTRACT_ADDRESSES.PLATFORM_CORE, amountWei],
+    });
+  };
+
   const submitPost = async (
     campaignId: number,
     postUrl: string,
@@ -210,6 +227,7 @@ export function usePlatformCore() {
 
   return {
     createCampaign,
+    approvePYUSD,
     submitPost,
     isPending: isPending || isConfirming,
     isSuccess,

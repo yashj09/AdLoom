@@ -80,18 +80,22 @@ export const CreateCampaign = () => {
   const [errors, setErrors] = useState<CampaignFormErrors>({});
   const [currentStep, setCurrentStep] = useState(1);
   const [newHashtag, setNewHashtag] = useState("");
+  const [approvalStep, setApprovalStep] = useState<
+    "none" | "approving" | "approved" | "creating"
+  >("none");
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isRegisteredBrand, userType, brandData } = useUserProfile(address);
-  const { createCampaign, isPending, isSuccess, hash } = usePlatformCore();
+  const { createCampaign, approvePYUSD, isPending, isSuccess, hash } =
+    usePlatformCore();
   const { platformFeeRate, minCampaignDuration, maxCampaignDuration } =
     usePlatformConfig();
 
   // Calculate total budget
   const totalBudget =
     (parseFloat(formData.paymentPerPost) || 0) * formData.maxPosts;
-  const platformFee = totalBudget * ((platformFeeRate || 250) / 10000);
+  const platformFee = totalBudget * ((Number(platformFeeRate) || 250) / 10000);
   const finalBudget = totalBudget + platformFee;
 
   // Redirect if not connected or not a brand
@@ -157,10 +161,10 @@ export const CreateCampaign = () => {
           const deadlineDate = new Date(formData.deadline);
           const now = new Date();
           const minDate = new Date(
-            now.getTime() + (minCampaignDuration || 86400) * 1000
+            now.getTime() + (Number(minCampaignDuration) || 86400) * 1000
           );
           const maxDate = new Date(
-            now.getTime() + (maxCampaignDuration || 31536000) * 1000
+            now.getTime() + (Number(maxCampaignDuration) || 31536000) * 1000
           );
 
           if (deadlineDate <= minDate) {
@@ -190,6 +194,36 @@ export const CreateCampaign = () => {
     if (!validateStep(3)) return;
 
     try {
+      // Step 1: Approve PYUSD spending first
+      if (approvalStep === "none") {
+        setApprovalStep("approving");
+        toast.info("Step 1/2: Please approve PYUSD spending in your wallet...");
+
+        await approvePYUSD(finalBudget.toString());
+
+        setApprovalStep("approved");
+        toast.success("PYUSD approved! Now creating campaign...");
+
+        // Continue to step 2 after a short delay
+        setTimeout(() => {
+          handleCreateCampaign();
+        }, 1500);
+        return;
+      }
+    } catch (error: any) {
+      console.error("PYUSD approval failed:", error);
+      toast.error(
+        error.message ||
+          "Failed to approve PYUSD. Make sure you have sufficient balance."
+      );
+      setApprovalStep("none");
+    }
+  };
+
+  const handleCreateCampaign = async () => {
+    try {
+      setApprovalStep("creating");
+
       // Construct requirements string (in a real app, this would be JSON)
       const requirementsObj = {
         description: formData.description,
@@ -215,9 +249,12 @@ export const CreateCampaign = () => {
         formData.minFollowers,
         finalBudget.toString()
       );
+
+      toast.success("Campaign created successfully! Funds locked in escrow.");
     } catch (error: any) {
       console.error("Campaign creation failed:", error);
       toast.error(error.message || "Failed to create campaign");
+      setApprovalStep("none");
     }
   };
 
@@ -287,7 +324,7 @@ export const CreateCampaign = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -295,16 +332,14 @@ export const CreateCampaign = () => {
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-white/70 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              Create Campaign
-            </h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold text-white">Create Campaign</h1>
+            <p className="text-white/70 mt-1">
               Launch your next influencer marketing campaign
             </p>
           </div>
@@ -334,9 +369,7 @@ export const CreateCampaign = () => {
               </div>
               <span
                 className={`ml-2 text-sm ${
-                  currentStep >= step
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                  currentStep >= step ? "text-white" : "text-white/50"
                 }`}
               >
                 {title}
@@ -543,7 +576,7 @@ export const CreateCampaign = () => {
               />
 
               {/* Budget Summary */}
-              <div className="bg-white/5 rounded-lg p-6 space-y-3">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 space-y-3 border border-white/10">
                 <h3 className="text-lg font-semibold text-white">
                   Budget Summary
                 </h3>
@@ -645,11 +678,15 @@ export const CreateCampaign = () => {
                       Important Notice
                     </h4>
                     <p className="text-amber-300/80 text-sm mt-1">
-                      Once you create this campaign, the total budget ($
-                      {finalBudget.toFixed(2)} PYUSD) will be locked in smart
-                      contract escrow. Make sure you have sufficient PYUSD
-                      balance and have approved the platform to spend your
-                      tokens.
+                      Creating this campaign requires two transactions:
+                    </p>
+                    <ol className="text-amber-300/80 text-sm mt-2 space-y-1 list-decimal list-inside">
+                      <li>Approve ${finalBudget.toFixed(2)} PYUSD spending</li>
+                      <li>Create campaign and lock funds in escrow</li>
+                    </ol>
+                    <p className="text-amber-300/80 text-sm mt-2">
+                      Make sure you have sufficient PYUSD balance in your
+                      wallet.
                     </p>
                   </div>
                 </div>
@@ -672,16 +709,26 @@ export const CreateCampaign = () => {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isPending}
+                disabled={isPending || approvalStep === "approved"}
                 className="min-w-[150px]"
               >
-                {isPending ? (
+                {approvalStep === "approving" ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={16} />
-                    Creating...
+                    Approving PYUSD...
+                  </>
+                ) : approvalStep === "approved" ? (
+                  <>
+                    <CheckCircle className="text-green-400 mr-2" size={16} />
+                    PYUSD Approved
+                  </>
+                ) : approvalStep === "creating" || isPending ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={16} />
+                    Creating Campaign...
                   </>
                 ) : (
-                  "Create Campaign"
+                  "Approve & Create Campaign"
                 )}
               </Button>
             )}

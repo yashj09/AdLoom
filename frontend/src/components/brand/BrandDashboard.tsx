@@ -45,36 +45,10 @@ export const BrandDashboard = () => {
   // Get user profile data
   const { brandData, isRegisteredBrand, userType } = useUserProfile(address);
 
-  // Debug logging
-  console.log("Debug BrandDashboard:", {
-    address,
-    userType,
-    isRegisteredBrand,
-    brandData,
-  });
+  // Removed debug logging
 
   // Get brand's campaigns
   const { brandCampaigns } = useUserCampaigns(address);
-
-  // Redirect if not connected or not a brand
-  useEffect(() => {
-    if (!isConnected) {
-      router.push("/register");
-      return;
-    }
-
-    // Only redirect if we have loaded the userType (not undefined)
-    if (isConnected && userType !== undefined) {
-      if (userType === 2) {
-        // User is a creator, redirect to creator dashboard
-        router.push("/creator/dashboard");
-      } else if (userType === 0) {
-        // User is not registered, redirect to register
-        router.push("/register");
-      }
-      // If userType === 1 (Brand), stay on this page
-    }
-  }, [isConnected, userType, router]);
 
   // Transform campaigns data from contract
   const campaignsData = useMemo(() => {
@@ -110,9 +84,11 @@ export const BrandDashboard = () => {
   const dashboardMetrics = useMemo(() => {
     if (!campaignsData || !brandData) return null;
 
-    const totalCampaigns = Number((brandData as any).totalCampaigns);
-    const activeCampaigns = Number((brandData as any).activeCampaigns);
-    const totalSpent = parseFloat(formatPYUSD((brandData as any).totalSpent));
+    const totalCampaigns = Number((brandData as any)?.totalCampaigns || 0);
+    const activeCampaigns = Number((brandData as any)?.activeCampaigns || 0);
+    const totalSpent = parseFloat(
+      formatPYUSD((brandData as any)?.totalSpent || 0)
+    );
 
     // Calculate from available campaign data
     const totalBudget = campaignsData.reduce((sum, c) => sum + c.budget, 0);
@@ -129,65 +105,26 @@ export const BrandDashboard = () => {
       totalSpent,
       totalSubmissions,
       avgEngagementRate,
-      totalSpentFormatted: formatPYUSD((brandData as any).totalSpent),
+      totalSpentFormatted: formatPYUSD((brandData as any)?.totalSpent || 0),
     };
   }, [campaignsData, brandData]);
 
-  // Loading state
-  if (!isConnected || userType === undefined || !brandData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2
-            className="animate-spin text-purple-400 mx-auto mb-4"
-            size={40}
-          />
-          <p className="text-white/70">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Show loading state only for data, not for connection/registration
+  // Remove restrictions - always allow access to dashboard
 
-  // Not registered state - but only show after we have data
-  if (userType !== undefined && userType === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="text-amber-400 mx-auto mb-4" size={40} />
-          <h2 className="text-xl font-bold text-white mb-2">Not Registered</h2>
-          <p className="text-white/70 mb-6">
-            You need to register as a brand to access the dashboard.
-          </p>
-          <Button onClick={() => router.push("/register")}>Register Now</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!dashboardMetrics || !campaignsData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2
-            className="animate-spin text-purple-400 mx-auto mb-4"
-            size={40}
-          />
-          <p className="text-white/70">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
+  // Show loading state only if we're actually fetching data
+  const isLoadingData = !dashboardMetrics || !campaignsData;
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              Welcome back, {(brandData as any).companyName}!
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              Welcome back, {(brandData as any)?.companyName || "Brand"}!
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-white/70">
               Manage your campaigns and track performance
             </p>
             <div className="flex items-center gap-2 mt-2 text-sm text-white/60">
@@ -195,12 +132,12 @@ export const BrandDashboard = () => {
                 Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
               </span>
               <span>•</span>
-              <span>{(brandData as any).industry}</span>
+              <span>{(brandData as any)?.industry || "Industry"}</span>
             </div>
           </div>
 
           <Button
-            onClick={() => router.push("/brand/campaigns/create")}
+            onClick={() => router.push("/brand/create-campaign")}
             className="flex items-center gap-2"
             style={{
               background: "var(--gradient-primary)",
@@ -216,15 +153,15 @@ export const BrandDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Total Campaigns"
-            value={dashboardMetrics.totalCampaigns.toString()}
-            subtitle={`${dashboardMetrics.activeCampaigns} active`}
+            value={dashboardMetrics?.totalCampaigns?.toString() || "0"}
+            subtitle={`${dashboardMetrics?.activeCampaigns || 0} active`}
             icon={BarChart3}
             trend="+12%"
           />
 
           <MetricCard
             title="Total Budget"
-            value={`$${dashboardMetrics.totalBudget.toLocaleString()}`}
+            value={`$${(dashboardMetrics?.totalBudget || 0).toLocaleString()}`}
             subtitle="PYUSD allocated"
             icon={DollarSign}
             trend="+8%"
@@ -232,7 +169,7 @@ export const BrandDashboard = () => {
 
           <MetricCard
             title="Content Submissions"
-            value={dashboardMetrics.totalSubmissions.toString()}
+            value={(dashboardMetrics?.totalSubmissions || 0).toString()}
             subtitle="Posts created"
             icon={Users}
             trend="+24%"
@@ -240,7 +177,7 @@ export const BrandDashboard = () => {
 
           <MetricCard
             title="Engagement Rate"
-            value={`${dashboardMetrics.avgEngagementRate}%`}
+            value={`${dashboardMetrics?.avgEngagementRate || 0}%`}
             subtitle="Average across campaigns"
             icon={TrendingUp}
             trend="+5%"
@@ -255,21 +192,21 @@ export const BrandDashboard = () => {
               title="Create New Campaign"
               description="Launch a new influencer campaign"
               icon={Plus}
-              onClick={() => router.push("/brand/campaigns/create")}
+              onClick={() => router.push("/brand/create-campaign")}
             />
 
             <ActionButton
               title="Browse Creators"
               description="Find the perfect influencers"
               icon={Users}
-              onClick={() => router.push("/brand/creators")}
+              onClick={() => router.push("/creator/campaigns")}
             />
 
             <ActionButton
               title="Analytics"
               description="View detailed performance metrics"
               icon={BarChart3}
-              onClick={() => router.push("/brand/analytics")}
+              onClick={() => router.push("/brand/dashboard")}
             />
           </div>
         </div>
@@ -280,26 +217,23 @@ export const BrandDashboard = () => {
             <h2 className="text-xl font-bold text-white">Your Campaigns</h2>
             <Button
               variant="outline"
-              onClick={() => router.push("/brand/campaigns")}
+              onClick={() => router.push("/brand/dashboard")}
             >
               View All
             </Button>
           </div>
 
-          {campaignsData.length === 0 ? (
+          {(campaignsData?.length || 0) === 0 ? (
             <div className="text-center py-12">
-              <BarChart3
-                className="text-muted-foreground mx-auto mb-4"
-                size={48}
-              />
-              <h3 className="text-xl font-semibold text-foreground mb-2">
+              <BarChart3 className="text-white/40 mx-auto mb-4" size={48} />
+              <h3 className="text-xl font-semibold text-white mb-2">
                 No Campaigns Yet
               </h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-white/70 mb-6">
                 Create your first campaign to start working with influencers.
               </p>
               <Button
-                onClick={() => router.push("/brand/campaigns/create")}
+                onClick={() => router.push("/brand/create-campaign")}
                 style={{
                   background: "var(--gradient-primary)",
                   boxShadow: "var(--shadow-glow)",
@@ -311,11 +245,13 @@ export const BrandDashboard = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {campaignsData.slice(0, 5).map((campaign) => (
+              {(campaignsData || []).slice(0, 5).map((campaign) => (
                 <CampaignRow
                   key={campaign.id}
                   campaign={campaign}
-                  onView={() => router.push(`/brand/campaigns/${campaign.id}`)}
+                  onView={() =>
+                    router.push(`/creator/campaigns/${campaign.id}`)
+                  }
                 />
               ))}
             </div>
@@ -331,45 +267,49 @@ export const BrandDashboard = () => {
             <div>
               <p className="text-white/60 text-sm">Total Campaigns</p>
               <p className="text-white font-semibold">
-                {Number((brandData as any).totalCampaigns)}
+                {Number((brandData as any)?.totalCampaigns || 0)}
               </p>
             </div>
             <div>
               <p className="text-white/60 text-sm">Total Spent</p>
               <p className="text-white font-semibold">
-                ${dashboardMetrics.totalSpentFormatted} PYUSD
+                ${dashboardMetrics?.totalSpentFormatted || "0"} PYUSD
               </p>
             </div>
             <div>
               <p className="text-white/60 text-sm">Active Campaigns</p>
               <p className="text-white font-semibold">
-                {Number((brandData as any).activeCampaigns)}
+                {Number((brandData as any)?.activeCampaigns || 0)}
               </p>
             </div>
             <div>
               <p className="text-white/60 text-sm">Member Since</p>
               <p className="text-white font-semibold">
-                {new Date(
-                  Number((brandData as any).registeredAt) * 1000
-                ).toLocaleDateString()}
+                {(brandData as any)?.registeredAt
+                  ? new Date(
+                      Number((brandData as any).registeredAt) * 1000
+                    ).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
             <div>
               <p className="text-white/60 text-sm">Industry</p>
               <p className="text-white font-semibold">
-                {(brandData as any).industry}
+                {(brandData as any)?.industry || "N/A"}
               </p>
             </div>
             <div>
               <p className="text-white/60 text-sm">Verification Level</p>
               <p className="text-white font-semibold">
-                {(brandData as any).verificationLevel === 0
+                {(brandData as any)?.verificationLevel === 0
                   ? "Unverified"
-                  : (brandData as any).verificationLevel === 1
+                  : (brandData as any)?.verificationLevel === 1
                   ? "Basic"
-                  : (brandData as any).verificationLevel === 2
+                  : (brandData as any)?.verificationLevel === 2
                   ? "Premium"
-                  : "Enterprise"}
+                  : (brandData as any)?.verificationLevel === 3
+                  ? "Enterprise"
+                  : "N/A"}
               </p>
             </div>
           </div>
