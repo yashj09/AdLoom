@@ -1,111 +1,181 @@
+// frontend/src/components/dashboard/Dashboard.tsx
+"use client";
+import React, { useMemo } from "react";
+import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
+import {
+  useUserProfile,
+  useUserCampaigns,
+  formatPYUSD,
+  useActiveCampaigns,
+  transformCampaignData,
+} from "@/hooks/useContracts";
 import { EarningsHeader } from "./EarningsHeader";
 import { PerformanceStats } from "./PerformanceStats";
 import { CampaignOpportunities } from "./CampaignOpportunities";
 import { RecentActivity } from "./RecentActivity";
 import { toast } from "sonner";
-// Mock data - In a real app, this would come from APIs
-const mockData = {
-  earnings: {
-    totalEarned: 12847.65,
-    pendingPayment: 234.5,
-  },
-  performance: {
-    campaignsCompleted: 28,
-    postsVerified: 156,
-    averageRating: 9250, // 92.5% in basis points
-  },
-  campaigns: {
-    availableCount: 47,
-    topCampaigns: [
-      {
-        id: "1",
-        title: "Summer Fashion Collection",
-        brand: "StyleCo",
-        reward: 250,
-        deadline: "3 days left",
-        participants: 45,
-        maxParticipants: 100,
-        difficulty: "Easy" as const,
-      },
-      {
-        id: "2",
-        title: "Tech Product Review",
-        brand: "TechCorp",
-        reward: 500,
-        deadline: "1 week left",
-        participants: 23,
-        maxParticipants: 50,
-        difficulty: "Medium" as const,
-      },
-      {
-        id: "3",
-        title: "Luxury Watch Showcase",
-        brand: "TimeKeeper",
-        reward: 750,
-        deadline: "5 days left",
-        participants: 12,
-        maxParticipants: 25,
-        difficulty: "Hard" as const,
-      },
-    ],
-  },
-  activities: [
-    {
-      id: "1",
-      type: "payment_received" as const,
-      title: "Payment Received",
-      description: "StyleCo campaign payment processed",
-      timestamp: "2 min ago",
-      amount: 250,
-      isNew: true,
-    },
-    {
-      id: "2",
-      type: "post_verified" as const,
-      title: "Post Verification",
-      description: "Your tech review post has been approved",
-      timestamp: "1 hour ago",
-      status: "approved" as const,
-      isNew: true,
-    },
-    {
-      id: "3",
-      type: "campaign_matched" as const,
-      title: "New Campaign Match",
-      description: "You qualify for the Fitness Gear campaign",
-      timestamp: "3 hours ago",
-      isNew: false,
-    },
-    {
-      id: "4",
-      type: "post_submitted" as const,
-      title: "Post Submitted",
-      description: "Fashion showcase post submitted for review",
-      timestamp: "1 day ago",
-      status: "pending" as const,
-      isNew: false,
-    },
-    {
-      id: "5",
-      type: "post_verified" as const,
-      title: "Post Verification",
-      description: "Travel content post was rejected - needs better lighting",
-      timestamp: "2 days ago",
-      status: "rejected" as const,
-      isNew: false,
-    },
-  ],
-};
+import { Loader2, AlertCircle } from "lucide-react";
 
 export const Dashboard = () => {
+  const { address, isConnected } = useAccount();
+  const router = useRouter();
+
+  // Get user profile data
+  const { creatorData, isRegisteredCreator, userType } =
+    useUserProfile(address);
+
+  // Get user's campaign submissions
+  const { creatorSubmissions } = useUserCampaigns(address);
+
+  // Get available campaign opportunities
+  const { campaigns: availableCampaigns, loading: campaignsLoading } =
+    useActiveCampaigns(5);
+
+  // Redirect if not connected or not a creator
+  React.useEffect(() => {
+    if (!isConnected) {
+      router.push("/register");
+      return;
+    }
+
+    if (isConnected && userType !== undefined && userType !== 2) {
+      if (userType === 1) {
+        router.push("/brand/dashboard");
+      } else {
+        router.push("/register");
+      }
+    }
+  }, [isConnected, userType, router]);
+
+  // Transform contract data for dashboard components
+  const dashboardData = useMemo(() => {
+    if (!creatorData || !creatorSubmissions) {
+      return null;
+    }
+
+    // Calculate earnings data from real contract data
+    const totalEarned = parseFloat(
+      formatPYUSD((creatorData as any)?.totalEarned || 0)
+    );
+    const pendingPayment = 0; // TODO: Calculate from pending submissions
+
+    // Performance stats from contract
+    const performance = {
+      campaignsCompleted: Number((creatorData as any)?.completedCampaigns || 0),
+      postsVerified: (creatorSubmissions as any)?.length || 0, // Total submissions
+      averageRating: Number((creatorData as any)?.averageRating || 0), // Already in basis points
+    };
+
+    // Campaigns are already formatted by the API
+    const topCampaigns =
+      availableCampaigns?.slice(0, 3)?.map((campaign: any) => ({
+        id: campaign.id,
+        title: campaign.title,
+        brand: campaign.brand,
+        reward: campaign.payment,
+        deadline: campaign.deadline,
+        participants: campaign.participants,
+        maxParticipants: campaign.maxParticipants,
+        difficulty: campaign.difficulty,
+      })) || [];
+
+    const campaigns = {
+      availableCount: availableCampaigns?.length || 0,
+      topCampaigns,
+    };
+
+    // Create activities based on actual submissions
+    const activities =
+      (creatorSubmissions as any[])?.map(
+        (submissionId: bigint, index: number) => ({
+          id: submissionId.toString(),
+          type: "post_submitted" as const,
+          title: "Post Submitted",
+          description: `Submission #${submissionId} is under review`,
+          timestamp: `${index + 1} day${index === 0 ? "" : "s"} ago`,
+          isNew: index < 2,
+        })
+      ) || [];
+
+    // Add earnings activity if user has earned something
+    if (totalEarned > 0) {
+      activities.unshift({
+        id: "earnings",
+        type: "post_submitted" as const, // Using available type
+        title: "Total Earnings",
+        description: `You've earned ${totalEarned} PYUSD from completed campaigns`,
+        timestamp: "Overall",
+        isNew: false,
+      } as any); // Allow additional properties
+    }
+
+    return {
+      earnings: { totalEarned, pendingPayment },
+      performance,
+      campaigns,
+      activities,
+    };
+  }, [creatorData, creatorSubmissions, availableCampaigns]);
+
   const handleWithdraw = () => {
-    toast("Withdrawal Initiated");
+    // TODO: Implement PYUSD withdrawal
+    toast("Withdrawal feature coming soon!");
   };
 
   const handleBrowseCampaigns = () => {
-    // Navigate to campaign browse page instead of showing toast
-    window.location.href = "/campaigns";
+    router.push("/creator/campaigns");
   };
+
+  // Loading state
+  if (!isConnected || userType === undefined || !creatorData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2
+            className="animate-spin text-purple-400 mx-auto mb-4"
+            size={40}
+          />
+          <p className="text-white/70">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not registered state
+  if (!isRegisteredCreator) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="text-amber-400 mx-auto mb-4" size={40} />
+          <h2 className="text-xl font-bold text-white mb-2">Not Registered</h2>
+          <p className="text-white/70 mb-6">
+            You need to register as a creator to access the dashboard.
+          </p>
+          <button
+            onClick={() => router.push("/register")}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            Register Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2
+            className="animate-spin text-purple-400 mx-auto mb-4"
+            size={40}
+          />
+          <p className="text-white/70">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -113,36 +183,84 @@ export const Dashboard = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-            Creator Dashboard
+            Welcome back, {(creatorData as any)?.displayName || "Creator"}!
           </h1>
           <p className="text-muted-foreground">
             Track your earnings, performance, and discover new opportunities
           </p>
+          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-white/60">
+            <span>
+              Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+            </span>
+            <span>•</span>
+            <span>@{(creatorData as any)?.username || "username"}</span>
+          </div>
         </div>
 
         {/* Earnings Header */}
         <EarningsHeader
-          totalEarned={mockData.earnings.totalEarned}
-          pendingPayment={mockData.earnings.pendingPayment}
+          totalEarned={dashboardData.earnings.totalEarned}
+          pendingPayment={dashboardData.earnings.pendingPayment}
           onWithdraw={handleWithdraw}
         />
 
         {/* Performance Stats */}
         <PerformanceStats
-          campaignsCompleted={mockData.performance.campaignsCompleted}
-          postsVerified={mockData.performance.postsVerified}
-          averageRating={mockData.performance.averageRating}
+          campaignsCompleted={dashboardData.performance.campaignsCompleted}
+          postsVerified={dashboardData.performance.postsVerified}
+          averageRating={dashboardData.performance.averageRating}
         />
 
         {/* Campaign Opportunities */}
         <CampaignOpportunities
-          availableCount={mockData.campaigns.availableCount}
-          topCampaigns={mockData.campaigns.topCampaigns}
+          availableCount={dashboardData.campaigns.availableCount}
+          topCampaigns={dashboardData.campaigns.topCampaigns}
           onBrowseAll={handleBrowseCampaigns}
         />
 
         {/* Recent Activity */}
-        <RecentActivity activities={mockData.activities} />
+        <RecentActivity activities={dashboardData.activities} />
+
+        {/* Creator Profile Summary */}
+        <div className="glass-card rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">
+            Profile Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-white/60 text-sm">Total Campaigns</p>
+              <p className="text-white font-semibold">
+                {dashboardData.performance.campaignsCompleted}
+              </p>
+            </div>
+            <div>
+              <p className="text-white/60 text-sm">Total Earned</p>
+              <p className="text-white font-semibold">
+                ${dashboardData.earnings.totalEarned} PYUSD
+              </p>
+            </div>
+            <div>
+              <p className="text-white/60 text-sm">Member Since</p>
+              <p className="text-white font-semibold">
+                {new Date(
+                  Number((creatorData as any)?.registeredAt || 0) * 1000
+                ).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-white/60 text-sm">Verification Level</p>
+              <p className="text-white font-semibold">
+                {(creatorData as any)?.verificationLevel === 0
+                  ? "Unverified"
+                  : (creatorData as any)?.verificationLevel === 1
+                  ? "Basic"
+                  : (creatorData as any)?.verificationLevel === 2
+                  ? "Premium"
+                  : "Enterprise"}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import CampaignBrowse from "@/components/campaigns/CampaignBrowse";
+import { CampaignBrowse } from "@/components/campaigns/CampaignBrowse";
 const page = () => {
   return <CampaignBrowse />;
 };
