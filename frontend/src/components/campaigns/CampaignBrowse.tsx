@@ -304,106 +304,133 @@ const CampaignBrowse = () => {
   ]);
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Back Navigation */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, hsl(280, 40%, 75%), hsl(270, 35%, 80%))",
+      }}
+    >
+      {/* Background texture overlay */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.02%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
 
-        {/* Search Header */}
-        <SearchHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          resultsCount={filteredCampaigns.length}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          onToggleFilters={() => setShowMobileFilters(!showMobileFilters)}
-          showMobileFilters={showMobileFilters}
-        />
+      {/* Gradient orbs for extra depth */}
+      <div
+        className="absolute top-20 left-20 w-72 h-72 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"
+        style={{ background: "hsl(var(--primary-glow))" }}
+      ></div>
+      <div
+        className="absolute bottom-20 right-20 w-72 h-72 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"
+        style={{ background: "hsl(var(--accent))" }}
+      ></div>
 
-        <div className="flex gap-8">
-          {/* Filter Sidebar */}
-          <div className="w-80 flex-shrink-0 hidden lg:block">
-            <FilterSidebar
-              paymentRange={paymentRange}
-              onPaymentRangeChange={setPaymentRange}
-              selectedCategories={selectedCategories}
-              onCategoryChange={handleCategoryChange}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-              minFollowers={minFollowers}
-              onMinFollowersChange={setMinFollowers}
-              onClearFilters={handleClearFilters}
-              isOpen={false}
-              onClose={() => {}}
-            />
+      <div className="relative z-10 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Back Navigation */}
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/")}
+              className="text-purple-900 hover:text-purple-800"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
           </div>
 
-          {/* Mobile Filter Sidebar */}
-          <FilterSidebar
-            paymentRange={paymentRange}
-            onPaymentRangeChange={setPaymentRange}
-            selectedCategories={selectedCategories}
-            onCategoryChange={handleCategoryChange}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            minFollowers={minFollowers}
-            onMinFollowersChange={setMinFollowers}
-            onClearFilters={handleClearFilters}
-            isOpen={showMobileFilters}
-            onClose={() => setShowMobileFilters(false)}
+          {/* Search Header */}
+          <SearchHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            resultsCount={filteredCampaigns.length}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            onToggleFilters={() => setShowMobileFilters(!showMobileFilters)}
+            showMobileFilters={showMobileFilters}
           />
 
-          {/* Campaign Grid */}
-          <div className="flex-1">
-            {isLoading ? (
-              <CampaignGridSkeleton count={9} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                {paginatedCampaigns.map((campaign) => (
-                  <CampaignCard
-                    key={campaign.id}
-                    campaign={campaign}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="flex gap-8">
+            {/* Unified Filter Sidebar (Desktop) */}
+            <div className="w-80 flex-shrink-0 hidden lg:block">
+              <FilterSidebar
+                paymentRange={paymentRange}
+                onPaymentRangeChange={setPaymentRange}
+                selectedCategories={selectedCategories}
+                onCategoryChange={handleCategoryChange}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minFollowers={minFollowers}
+                onMinFollowersChange={setMinFollowers}
+                onClearFilters={handleClearFilters}
+                isOpen={false}
+                onClose={() => {}}
+              />
+            </div>
 
-            {/* No Results */}
-            {!isLoading && filteredCampaigns.length === 0 && (
-              <div className="glass-card rounded-lg p-12 text-center">
-                <div className="max-w-md mx-auto">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    No campaigns found
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Try adjusting your search criteria or filters to find more
-                    campaigns.
-                  </p>
-                  <Button onClick={handleClearFilters} variant="outline">
-                    Clear All Filters
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {!isLoading && filteredCampaigns.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
+            {/* Mobile Filter Sidebar Overlay */}
+            {showMobileFilters && (
+              <FilterSidebar
+                paymentRange={paymentRange}
+                onPaymentRangeChange={setPaymentRange}
+                selectedCategories={selectedCategories}
+                onCategoryChange={handleCategoryChange}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minFollowers={minFollowers}
+                onMinFollowersChange={setMinFollowers}
+                onClearFilters={handleClearFilters}
+                isOpen={showMobileFilters}
+                onClose={() => setShowMobileFilters(false)}
               />
             )}
+
+            {/* Campaign Grid */}
+            <div className="flex-1">
+              {isLoading ? (
+                <CampaignGridSkeleton count={9} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                  {paginatedCampaigns.map((campaign) => (
+                    <CampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      onViewDetails={handleViewDetails}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {!isLoading && filteredCampaigns.length === 0 && (
+                <div className="glass-card rounded-lg p-12 text-center">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                      No campaigns found
+                    </h3>
+                    <p className="text-purple-700 mb-4">
+                      Try adjusting your search criteria or filters to find more
+                      campaigns.
+                    </p>
+                    <Button
+                      onClick={handleClearFilters}
+                      variant="outline"
+                      className="border-purple-400 text-purple-900 hover:bg-purple-200"
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {!isLoading && filteredCampaigns.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -32,32 +32,32 @@ export const SearchHeader = ({
     <div className="glass-card rounded-lg p-6 mb-6">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="flex-1 w-full lg:w-auto">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-purple-900 mb-4">
             Available Campaigns
           </h1>
 
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-600" />
             <Input
               placeholder="Search campaigns, brands, or keywords..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 glass-card border-white/20 bg-white/10 backdrop-blur-sm text-foreground placeholder:text-muted-foreground"
+              className="pl-10 glass-card border-purple/30 bg-purple/10 backdrop-blur-sm text-purple-900 placeholder:text-purple-600"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-4 w-full lg:w-auto">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-purple-700">
             <span className="font-medium">{resultsCount}</span>
             <span>campaigns found</span>
           </div>
 
           <Select value={sortBy} onValueChange={onSortChange}>
-            <SelectTrigger className="w-40 glass-card border-white/20 bg-white/10 backdrop-blur-sm">
+            <SelectTrigger className="w-40 glass-card border-purple/30 bg-purple/10 backdrop-blur-sm text-purple-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card/95 backdrop-blur-md border-white/20">
+            <SelectContent className="bg-card/95 backdrop-blur-md border-purple/30">
               <SelectItem value="payment_desc">Highest Payment</SelectItem>
               <SelectItem value="payment_asc">Lowest Payment</SelectItem>
               <SelectItem value="deadline_asc">Deadline Soon</SelectItem>
@@ -70,7 +70,7 @@ export const SearchHeader = ({
             variant="outline"
             size="sm"
             onClick={onToggleFilters}
-            className="lg:hidden glass-card border-white/20 bg-white/10"
+            className="lg:hidden glass-card border-purple/30 bg-purple/10 text-purple-900 hover:bg-purple/20"
           >
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters

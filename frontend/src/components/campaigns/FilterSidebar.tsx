@@ -88,7 +88,7 @@ export const FilterSidebar = ({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+            <h2 className="text-lg font-semibold text-purple-900">Filters</h2>
             {activeFiltersCount > 0 && (
               <Badge variant="secondary" className="bg-primary/20 text-primary">
                 {activeFiltersCount}
@@ -100,7 +100,7 @@ export const FilterSidebar = ({
               variant="ghost"
               size="sm"
               onClick={onClearFilters}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-purple-700 hover:text-purple-900"
             >
               Clear All
             </Button>
@@ -108,7 +108,7 @@ export const FilterSidebar = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="lg:hidden"
+              className="lg:hidden text-purple-700 hover:text-purple-900"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -119,7 +119,7 @@ export const FilterSidebar = ({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-primary" />
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-purple-900">
               Payment Range (PYUSD)
             </label>
           </div>
@@ -133,7 +133,7 @@ export const FilterSidebar = ({
             step={50}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs text-purple-600">
             <span>{formatCurrency(paymentRange[0])}</span>
             <span>{formatCurrency(paymentRange[1])}</span>
           </div>
@@ -141,7 +141,7 @@ export const FilterSidebar = ({
 
         {/* Categories */}
         <div className="space-y-3">
-          <label className="text-sm font-medium text-foreground">
+          <label className="text-sm font-medium text-purple-900">
             Categories
           </label>
           <div className="space-y-3 max-h-48 overflow-y-auto">
@@ -156,7 +156,7 @@ export const FilterSidebar = ({
                 />
                 <label
                   htmlFor={category}
-                  className="text-sm text-foreground cursor-pointer flex-1 hover:text-primary transition-colors"
+                  className="text-sm text-purple-800 cursor-pointer flex-1 hover:text-primary transition-colors"
                 >
                   {category}
                 </label>
@@ -169,7 +169,7 @@ export const FilterSidebar = ({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-purple-900">
               Deadline Range
             </label>
           </div>
@@ -178,8 +178,8 @@ export const FilterSidebar = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal glass-card border-white/20 bg-white/10",
-                  !dateRange.from && !dateRange.to && "text-muted-foreground"
+                  "w-full justify-start text-left font-normal glass-card border-purple/30 bg-purple/10 text-purple-900",
+                  !dateRange.from && !dateRange.to && "text-purple-500"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -222,7 +222,7 @@ export const FilterSidebar = ({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-purple-900">
               Minimum Followers
             </label>
           </div>
@@ -235,8 +235,8 @@ export const FilterSidebar = ({
             className="w-full"
           />
           <div className="text-xs text-center">
-            <span className="text-muted-foreground">Current: </span>
-            <span className="font-medium text-foreground">
+            <span className="text-purple-600">Current: </span>
+            <span className="font-medium text-purple-900">
               {formatFollowers(minFollowers)} followers
             </span>
           </div>

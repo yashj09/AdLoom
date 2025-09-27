@@ -54,7 +54,7 @@ export const Pagination = ({
     <div className="glass-card rounded-lg p-6">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Page Info */}
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-purple-700">
           Page {currentPage} of {totalPages}
         </div>
 
@@ -65,7 +65,7 @@ export const Pagination = ({
             size="sm"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="glass-card border-white/20 bg-white/10"
+            className="glass-card border-purple/30 bg-purple/10 text-purple-900 hover:bg-purple/20"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -79,8 +79,8 @@ export const Pagination = ({
               disabled={page === "..."}
               className={
                 page === currentPage
-                  ? "bg-primary text-primary-foreground"
-                  : "glass-card border-white/20 bg-white/10"
+                  ? "bg-primary text-white"
+                  : "glass-card border-purple/30 bg-purple/10 text-purple-900 hover:bg-purple/20"
               }
             >
               {page === "..." ? <MoreHorizontal className="h-4 w-4" /> : page}
@@ -92,7 +92,7 @@ export const Pagination = ({
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="glass-card border-white/20 bg-white/10"
+            className="glass-card border-purple/30 bg-purple/10 text-purple-900 hover:bg-purple/20"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
