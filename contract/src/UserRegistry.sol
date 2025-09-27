@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract UserRegistry is AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant PLATFORM_ROLE = keccak256("PLATFORM_ROLE");
 
-    enum UserType { None, Brand, Creator }
-    enum VerificationLevel { Unverified, BasicVerified, PremiumVerified }
+    enum UserType {
+        None,
+        Brand,
+        Creator
+    }
+    enum VerificationLevel {
+        Unverified,
+        BasicVerified,
+        PremiumVerified
+    }
 
     struct Brand {
         address brandAddress;
@@ -75,11 +82,11 @@ contract UserRegistry is AccessControl {
     mapping(address => UserType) public userTypes;
     mapping(string => address) public usernameToAddress;
     mapping(uint256 => VerificationRequest) public verificationRequests;
-    
+
     uint256 private verificationRequestCounter;
     address[] public registeredBrands;
     address[] public registeredCreators;
-    
+
     // Platform stats
     uint256 public totalBrands;
     uint256 public totalCreators;
@@ -118,13 +125,11 @@ contract UserRegistry is AccessControl {
         string updateType
     );
 
-
     constructor(address _admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
     }
 
-   
     function registerBrand(
         string memory companyName,
         string memory description,
@@ -133,7 +138,10 @@ contract UserRegistry is AccessControl {
         string[] memory industries,
         string memory contactEmail
     ) external {
-        require(userTypes[msg.sender] == UserType.None, "User already registered");
+        require(
+            userTypes[msg.sender] == UserType.None,
+            "User already registered"
+        );
         require(bytes(companyName).length > 0, "Company name required");
         require(bytes(websiteUrl).length > 0, "Website URL required");
 
@@ -171,7 +179,10 @@ contract UserRegistry is AccessControl {
         string[] memory categories,
         string[] memory languages
     ) external {
-        require(userTypes[msg.sender] == UserType.None, "User already registered");
+        require(
+            userTypes[msg.sender] == UserType.None,
+            "User already registered"
+        );
         require(bytes(username).length > 2, "Username too short");
         require(usernameToAddress[username] == address(0), "Username taken");
         require(categories.length > 0, "At least one category required");
@@ -202,7 +213,6 @@ contract UserRegistry is AccessControl {
         emit CreatorRegistered(msg.sender, username, categories);
     }
 
-    
     function updateBrandProfile(
         string memory description,
         string memory websiteUrl,
@@ -210,8 +220,11 @@ contract UserRegistry is AccessControl {
         string[] memory industries,
         string memory contactEmail
     ) external {
-        require(userTypes[msg.sender] == UserType.Brand, "Not a registered brand");
-        
+        require(
+            userTypes[msg.sender] == UserType.Brand,
+            "Not a registered brand"
+        );
+
         Brand storage brand = brands[msg.sender];
         brand.description = description;
         brand.websiteUrl = websiteUrl;
@@ -234,8 +247,11 @@ contract UserRegistry is AccessControl {
         string[] memory categories,
         string[] memory languages
     ) external {
-        require(userTypes[msg.sender] == UserType.Creator, "Not a registered creator");
-        
+        require(
+            userTypes[msg.sender] == UserType.Creator,
+            "Not a registered creator"
+        );
+
         Creator storage creator = creators[msg.sender];
         creator.displayName = displayName;
         creator.bio = bio;
@@ -248,8 +264,6 @@ contract UserRegistry is AccessControl {
         emit ProfileUpdated(msg.sender, UserType.Creator, "profile");
     }
 
-
-  
     function updateBrandStats(
         address brand,
         uint256 totalCampaigns,
@@ -257,7 +271,7 @@ contract UserRegistry is AccessControl {
         uint256 activeCampaigns
     ) external onlyRole(PLATFORM_ROLE) {
         require(userTypes[brand] == UserType.Brand, "Not a brand");
-        
+
         Brand storage brandData = brands[brand];
         brandData.totalCampaigns = totalCampaigns;
         brandData.totalSpent = totalSpent;
@@ -271,22 +285,20 @@ contract UserRegistry is AccessControl {
         uint256 averageRating
     ) external onlyRole(PLATFORM_ROLE) {
         require(userTypes[creator] == UserType.Creator, "Not a creator");
-        
+
         Creator storage creatorData = creators[creator];
         creatorData.completedCampaigns = completedCampaigns;
         creatorData.totalEarned = totalEarned;
         creatorData.averageRating = averageRating;
     }
 
-
-    
     function requestVerification(
         VerificationLevel requestedLevel,
         string[] memory documents,
         string memory reason
     ) external {
         require(userTypes[msg.sender] != UserType.None, "User not registered");
-        
+
         verificationRequestCounter++;
         uint256 requestId = verificationRequestCounter;
 
@@ -310,7 +322,6 @@ contract UserRegistry is AccessControl {
         );
     }
 
-   
     function processVerificationRequest(
         uint256 requestId,
         bool approved,
@@ -330,17 +341,21 @@ contract UserRegistry is AccessControl {
                     verifiedBrands++;
                 }
             } else {
-                creators[request.user].verificationLevel = request.requestedLevel;
+                creators[request.user].verificationLevel = request
+                    .requestedLevel;
                 if (request.requestedLevel >= VerificationLevel.BasicVerified) {
                     verifiedCreators++;
                 }
             }
 
-            emit UserVerified(request.user, request.userType, request.requestedLevel);
+            emit UserVerified(
+                request.user,
+                request.userType,
+                request.requestedLevel
+            );
         }
     }
 
-    
     function deactivateUser(address user) external {
         require(
             msg.sender == user || hasRole(ADMIN_ROLE, msg.sender),
@@ -369,15 +384,21 @@ contract UserRegistry is AccessControl {
         }
     }
 
-    function getBrand(address brandAddress) external view returns (Brand memory) {
+    function getBrand(
+        address brandAddress
+    ) external view returns (Brand memory) {
         return brands[brandAddress];
     }
 
-    function getCreator(address creatorAddress) external view returns (Creator memory) {
+    function getCreator(
+        address creatorAddress
+    ) external view returns (Creator memory) {
         return creators[creatorAddress];
     }
 
-    function getCreatorByUsername(string memory username) external view returns (Creator memory) {
+    function getCreatorByUsername(
+        string memory username
+    ) external view returns (Creator memory) {
         address creatorAddress = usernameToAddress[username];
         return creators[creatorAddress];
     }
@@ -394,43 +415,56 @@ contract UserRegistry is AccessControl {
         return userTypes[user];
     }
 
-
-    function getVerificationRequest(uint256 requestId) external view returns (VerificationRequest memory) {
+    function getVerificationRequest(
+        uint256 requestId
+    ) external view returns (VerificationRequest memory) {
         return verificationRequests[requestId];
     }
 
-    function getPlatformStats() external view returns (
-        uint256 _totalBrands,
-        uint256 _totalCreators,
-        uint256 _verifiedBrands,
-        uint256 _verifiedCreators
-    ) {
+    function getPlatformStats()
+        external
+        view
+        returns (
+            uint256 _totalBrands,
+            uint256 _totalCreators,
+            uint256 _verifiedBrands,
+            uint256 _verifiedCreators
+        )
+    {
         return (totalBrands, totalCreators, verifiedBrands, verifiedCreators);
     }
 
-    function getCreatorsByCategory(string memory category) external view returns (address[] memory) {
+    function getCreatorsByCategory(
+        string memory category
+    ) external view returns (address[] memory) {
         uint256 count = 0;
-        
+
         for (uint256 i = 0; i < registeredCreators.length; i++) {
             Creator memory creator = creators[registeredCreators[i]];
             if (creator.isActive) {
                 for (uint256 j = 0; j < creator.categories.length; j++) {
-                    if (keccak256(bytes(creator.categories[j])) == keccak256(bytes(category))) {
+                    if (
+                        keccak256(bytes(creator.categories[j])) ==
+                        keccak256(bytes(category))
+                    ) {
                         count++;
                         break;
                     }
                 }
             }
         }
-        
+
         address[] memory matchingCreators = new address[](count);
         uint256 index = 0;
-        
+
         for (uint256 i = 0; i < registeredCreators.length; i++) {
             Creator memory creator = creators[registeredCreators[i]];
             if (creator.isActive) {
                 for (uint256 j = 0; j < creator.categories.length; j++) {
-                    if (keccak256(bytes(creator.categories[j])) == keccak256(bytes(category))) {
+                    if (
+                        keccak256(bytes(creator.categories[j])) ==
+                        keccak256(bytes(category))
+                    ) {
                         matchingCreators[index] = registeredCreators[i];
                         index++;
                         break;
@@ -438,19 +472,22 @@ contract UserRegistry is AccessControl {
                 }
             }
         }
-        
+
         return matchingCreators;
     }
 
-    function getTopCreators(uint256 limit) external view returns (address[] memory) {
-        uint256 actualLimit = limit > registeredCreators.length ? registeredCreators.length : limit;
+    function getTopCreators(
+        uint256 limit
+    ) external view returns (address[] memory) {
+        uint256 actualLimit = limit > registeredCreators.length
+            ? registeredCreators.length
+            : limit;
         address[] memory topCreators = new address[](actualLimit);
-        
+
         for (uint256 i = 0; i < actualLimit; i++) {
             topCreators[i] = registeredCreators[i];
         }
-        
+
         return topCreators;
     }
-
 }
